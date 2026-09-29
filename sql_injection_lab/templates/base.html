@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Adventure Works Shop{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="app-body">
+    <header class="store-header">
+        <div class="store-header-inner">
+            <a class="store-brand" href="{{ url_for('index') }}" aria-label="Adventure Works Shop home">
+                <svg class="store-brand-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                    <path class="logo-peak" d="M6 35.5 18.1 13l7.2 12.3 4.2-7.2L42 39H6z"/>
+                    <path class="logo-trail" d="M8 39h31.5c-4.2-3.1-7.9-3.3-11.1-1.8-3.9 1.8-7.1 1.5-10.1.2-3-1.2-6.2-1.1-10.3 1.6Z"/>
+                    <circle class="logo-sun" cx="33.5" cy="12.5" r="3.5"/>
+                </svg>
+                <span>
+                    <strong>adventure<span>works</span></strong>
+                    <small>performance cycling equipment</small>
+                </span>
+            </a>
+        </div>
+        <nav class="store-nav" aria-label="Store navigation">
+            <div class="store-header-inner store-nav-inner">
+                <span class="active">Products</span>
+                <span>Mountain bikes</span>
+                <span>Road bikes</span>
+                <span>Accessories</span>
+                <span>Support</span>
+                <span class="store-nav-note">Free delivery on orders over $100</span>
+            </div>
+        </nav>
+    </header>
+    <main class="container app-container store-page">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="store-footer">
+        <div class="store-footer-inner">
+            <div>
+                <strong>Adventure Works Shop</strong>
+                <p>Performance equipment for every ride.</p>
+            </div>
+            <div class="store-footer-links">
+                <span>Delivery information</span>
+                <span>Returns</span>
+                <span>Customer support</span>
+                <span>Privacy</span>
+            </div>
+            <p class="store-footer-copy">© 2026 Adventure Works</p>
+        </div>
+    </footer>
+</body>
+</html>

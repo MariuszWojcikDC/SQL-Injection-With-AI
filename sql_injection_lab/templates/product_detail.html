@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} | Adventure Works Shop{% endblock %}
+
+{% block content %}
+<section class="product-detail store-product-detail">
+    <p class="eyebrow">Adventure Works catalogue</p>
+    <div class="product-detail-summary">
+        <div>
+            <h1>{{ product.name }}</h1>
+            <p class="product-detail-description">{{ product.description }}</p>
+        </div>
+        <div>
+            <p class="product-detail-price">{{ "%.2f"|format(product.list_price) }} USD</p>
+            <p class="product-availability">{{ product.product_status or "not available" }}</p>
+        </div>
+    </div>
+    <section class="product-specification">
+        <h2>Product details</h2>
+        <dl class="product-detail-specs">
+            <div><dt>Product ID</dt><dd>{{ product.product_id }}</dd></div>
+            <div><dt>Standard cost</dt><dd>{{ "%.2f"|format(product.standard_cost) }} USD</dd></div>
+            <div><dt>Available from</dt><dd>{{ product.sell_start_date or "not available" }}</dd></div>
+            <div><dt>Available to</dt><dd>{{ product.sell_end_date or "not available" }}</dd></div>
+            <div><dt>Status</dt><dd>{{ product.product_status or "not available" }}</dd></div>
+            <div><dt>Record created</dt><dd>{{ product.created_at or "not available" }}</dd></div>
+        </dl>
+    </section>
+    <a class="details-link" href="{{ url_for('index') }}">Back to product list</a>
+</section>
+{% endblock %}

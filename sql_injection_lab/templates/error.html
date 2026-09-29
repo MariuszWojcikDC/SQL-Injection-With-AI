@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Error | Adventure Works Shop{% endblock %}
+
+{% block content %}
+<section class="error-page">
+    <h1>Error</h1>
+    <p>{{ message }}</p>
+    {% if error_details %}
+    <pre class="error-details">{{ error_details }}</pre>
+    {% endif %}
+    <a class="details-link" href="{{ url_for('index') }}">Back to home page</a>
+</section>
+{% endblock %}

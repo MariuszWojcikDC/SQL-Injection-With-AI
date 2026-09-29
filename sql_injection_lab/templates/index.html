@@ -1,0 +1,750 @@
+{% extends "base.html" %}
+{% block title %}Products | Adventure Works Shop{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell">
+    <aside class="dashboard-sidebar">
+        <section class="store-sidebar-intro">
+            <p class="eyebrow">Product tools</p>
+            <h1>Find your next ride</h1>
+            <p class="panel-copy">Browse the Adventure Works collection and inspect its search experience.</p>
+        </section>
+
+        <section class="panel sidebar-section">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Lab mode</p>
+                    <h2>Search profile</h2>
+                </div>
+                <span class="mode-pill mode-{{ app_mode|lower }}">{{ app_mode }}</span>
+            </div>
+
+            <form method="post" action="{{ url_for('set_mode') }}" class="mode-switch mode-switch-vertical">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" name="mode" value="SECURE" class="mode-btn {% if app_mode == 'SECURE' %}active{% endif %}">
+                    Secure mode
+                </button>
+                <button type="submit" name="mode" value="VULNERABLE" class="mode-btn {% if app_mode == 'VULNERABLE' %}active{% endif %}">
+                    Vulnerable mode
+                </button>
+            </form>
+
+            <p class="sidebar-hint">
+                Secure uses parameterization. Vulnerable concatenates user input directly into SQL.
+            </p>
+        </section>
+
+        <section class="panel sidebar-section">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Search scenarios</p>
+                    <h2>Demo library</h2>
+                </div>
+                <span class="section-count">{{ lab_examples | length }}</span>
+            </div>
+
+            <div class="demo-list">
+                {% for example in lab_examples %}
+                <form method="post" action="{{ url_for('index') }}" class="demo-form">
+                    <input type="hidden" name="q" value="{{ example.payload }}">
+                    <button type="submit" class="demo-link {% if query == example.payload %}active{% endif %}">
+                        <span class="demo-title">{{ example.title }}</span>
+                        <code class="demo-payload">{{ example.payload }}</code>
+                    </button>
+                </form>
+                {% endfor %}
+            </div>
+
+            {% if is_vulnerable %}
+            <form method="post" action="{{ url_for('reset_lab') }}" class="lab-reset-form">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit">Reset lab data</button>
+            </form>
+            {% else %}
+            <p class="sidebar-hint">
+                You can also select payloads in secure mode, but the attack effect will remain blocked.
+            </p>
+            {% endif %}
+        </section>
+
+    </aside>
+
+    <main class="dashboard-main">
+        <section class="panel search-panel search-panel-dashboard">
+            <div class="section-heading section-heading-large">
+                <div>
+                    <p class="eyebrow">Adventure Works catalogue</p>
+                    <h2>Shop cycling equipment</h2>
+                </div>
+            </div>
+
+            <form method="post" action="{{ url_for('index') }}" class="search-form dashboard-search-form">
+                <input
+                    id="product-search-input"
+                    type="text"
+                    name="q"
+                    placeholder="Search products, components and accessories..."
+                    value="{{ query }}"
+                    aria-label="Search product by name"
+                >
+                <button type="submit">Search</button>
+                <button
+                    id="sql-preview-trigger"
+                    class="sql-preview-trigger"
+                    type="button"
+                    aria-controls="sql-preview-drawer"
+                    aria-expanded="false"
+                >
+                    SQL Preview
+                </button>
+            </form>
+
+            <p class="result-meta">Search by product name, model or component type.</p>
+
+            {% if error_message %}
+            <p class="error">{{ error_message }}</p>
+            {% endif %}
+
+            {% if error_details %}
+            <pre class="error-details">{{ error_details }}</pre>
+            {% endif %}
+        </section>
+
+        <section class="catalogue-banner" aria-label="Featured mountain bikes">
+            <div class="catalogue-banner-copy">
+                <p class="eyebrow">Built for the trail</p>
+                <h2>Ready for your next ride</h2>
+                <p>Explore durable bikes and dependable components selected for everyday performance.</p>
+            </div>
+            <img src="{{ url_for('static', filename='images/featured-mountain-bike-wide.png') }}" alt="Black mountain bike with coral accents">
+        </section>
+
+        {% if time_based_probe_result %}
+        <section class="panel probe-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Blind Probe</p>
+                    <h2>Delay Analysis</h2>
+                </div>
+            </div>
+
+            <div class="probe-trace">
+                <div class="probe-trace-step">
+                    <span class="probe-step-index">01</span>
+                    <div class="probe-step-body">
+                        <p class="probe-step-title">Probe target</p>
+                        <p class="probe-step-value">
+                            Check <strong>DB_NAME()[{{ time_based_probe_result.position }}]</strong>
+                            against candidate <code>{{ time_based_probe_result.candidate }}</code>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="probe-trace-step">
+                    <span class="probe-step-index">02</span>
+                    <div class="probe-step-body">
+                        <p class="probe-step-title">Observed latency</p>
+                        <p class="probe-step-value">{{ time_based_probe_result.elapsed_ms }} ms</p>
+                    </div>
+                </div>
+
+                <div class="probe-trace-step">
+                    <span class="probe-step-index">03</span>
+                    <div class="probe-step-body">
+                        <p class="probe-step-title">Delay threshold</p>
+                        <p class="probe-step-value">
+                            TRUE delay: {{ time_based_probe_result.delay_ms }} ms
+                            <span class="probe-step-separator">/</span>
+                            detection threshold: {{ time_based_probe_result.threshold_ms }} ms
+                        </p>
+                    </div>
+                </div>
+
+                <div class="probe-trace-step">
+                    <span class="probe-step-index">04</span>
+                    <div class="probe-step-body">
+                        <p class="probe-step-title">Inference</p>
+                        <p class="probe-step-value">
+                            {% if time_based_probe_result.is_delayed %}
+                            Delay detected. The condition is likely <strong>TRUE</strong>.
+                            {% else %}
+                            No delay detected. The condition is likely <strong>FALSE</strong>.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="panel results-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Product catalogue</p>
+                    <h2>Available products</h2>
+                </div>
+                <span class="section-count">{{ products | length }}</span>
+            </div>
+
+            {% if products %}
+            <div class="result-table-wrap">
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th aria-sort="none">
+                                <button type="button" class="table-sort-btn" data-sort-index="0" data-sort-type="number" aria-label="Sort by product ID">
+                                    ID
+                                </button>
+                            </th>
+                            <th aria-sort="none">
+                                <button type="button" class="table-sort-btn" data-sort-index="1" data-sort-type="text" aria-label="Sort by product name">
+                                    Name
+                                </button>
+                            </th>
+                            <th aria-sort="none">
+                                <button type="button" class="table-sort-btn" data-sort-index="2" data-sort-type="number" aria-label="Sort by price">
+                                    Price
+                                </button>
+                            </th>
+                            <th aria-sort="none">
+                                <button type="button" class="table-sort-btn" data-sort-index="3" data-sort-type="text" aria-label="Sort by product status">
+                                    Status
+                                </button>
+                            </th>
+                            <th aria-sort="none">
+                                <button type="button" class="table-sort-btn" data-sort-index="4" data-sort-type="text" aria-label="Sort by product description">
+                                    Description
+                                </button>
+                            </th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td data-sort-value="{{ product.product_id }}">{{ product.product_id }}</td>
+                            <td class="result-name" data-sort-value="{{ product.name }}">{{ product.name }}</td>
+                            <td data-sort-value="{{ product.list_price }}">{{ "%.2f"|format(product.list_price) }} USD</td>
+                            <td data-sort-value="{{ product.product_status or 'not available' }}">{{ product.product_status or "not available" }}</td>
+                            <td data-sort-value="{{ product.description }}">{{ product.description }}</td>
+                            <td>
+                                <a class="details-link" href="{{ url_for('product_detail', product_id=product.product_id) }}">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty-state">No products to display.</p>
+            {% endif %}
+        </section>
+    </main>
+
+    <div id="sql-preview-backdrop" class="sql-preview-backdrop" hidden></div>
+
+    <aside id="sql-preview-drawer" class="dashboard-inspector dashboard-inspector-drawer" hidden>
+        <div class="sql-drawer-header">
+            <div>
+                <p class="eyebrow">SQL Workspace</p>
+                <h2>Preview Drawer</h2>
+            </div>
+            <div class="sql-drawer-actions">
+                <div class="sql-toggle" role="tablist" aria-label="SQL preview mode">
+                    <button type="button" class="sql-toggle-btn active" data-sql-target="unsafe">Unsafe</button>
+                    <button type="button" class="sql-toggle-btn" data-sql-target="safe">Safe</button>
+                </div>
+                <button id="sql-preview-close" class="sql-preview-close" type="button" aria-label="Close SQL preview">
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <section class="panel query-inspector">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">SQL Preview</p>
+                    <h2>Query Inspector</h2>
+                </div>
+            </div>
+
+            <section class="sql-view active" data-sql-panel="unsafe">
+                <p class="panel-copy">
+                    In the unsafe view, the fragment coming from user input is highlighted with a strong contrast background.
+                </p>
+                <p class="sql-caption">Unsafe string concatenation with user-controlled input.</p>
+                {% if unsafe_sql %}
+                <pre class="sql-preview sql-preview-unsafe">{{ unsafe_sql|format_sql(query, true) }}</pre>
+                {% else %}
+                <p class="result-meta">Unsafe SQL preview unavailable.</p>
+                {% endif %}
+
+                {% if unsafe_params %}
+                <p class="result-meta">Metadata:</p>
+                <pre class="sql-preview sql-params-preview">{{ unsafe_params|format_sql_params }}</pre>
+                {% endif %}
+            </section>
+
+            <section class="sql-view" data-sql-panel="safe" hidden>
+                <p class="panel-copy">
+                    In the safe view, user input stays in parameters and does not alter the SQL structure.
+                </p>
+                <p class="sql-caption">Safe parameterized query.</p>
+                {% if safe_sql %}
+                <pre class="sql-preview">{{ safe_sql|format_sql }}</pre>
+                {% else %}
+                <p class="result-meta">Safe SQL preview unavailable.</p>
+                {% endif %}
+
+                {% if safe_params %}
+                <p class="result-meta">Parameters:</p>
+                <pre class="sql-preview sql-params-preview">{{ safe_params|format_sql_params }}</pre>
+                {% endif %}
+            </section>
+        </section>
+    </aside>
+</section>
+
+<button id="chat-toggle" class="chat-toggle" type="button" aria-controls="chatbot" aria-expanded="false" aria-label="Open chat">
+    <svg class="chat-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v7A2.5 2.5 0 0 1 17.5 15H10l-4.2 3.6a.7.7 0 0 1-1.2-.53V15.5A2.5 2.5 0 0 1 2 13V5.5A2.5 2.5 0 0 1 4 5.5Z" fill="currentColor"/>
+    </svg>
+    <span>AI Chat</span>
+</button>
+
+<section id="chatbot" class="chat-window" hidden>
+    <div class="chat-window-header">
+        <h2>AI Chat Assistant</h2>
+        <div class="chat-window-header-actions">
+            <button id="chat-expand" class="chat-expand" type="button" aria-label="Expand chat">Expand</button>
+            <button id="chat-close" class="chat-close" type="button" aria-label="Close chat">Close</button>
+        </div>
+    </div>
+
+    <p class="result-meta chat-window-intro">
+        {% if is_vulnerable %}
+        Vulnerable demo mode: the chatbot can read <code>Labs</code> data, run semantic product search,
+        fetch a simulated remote HTML notice, and may update <code>Labs.ProductSearchSnapshot</code>
+        prices after social engineering prompts.
+        {% else %}
+        The chatbot uses Azure OpenAI and can read data from schema <code>Labs</code>
+        and perform semantic product search. Remote HTML content is treated as untrusted input.
+        {% endif %}
+    </p>
+
+    {% if chat_error %}
+    <p class="error">{{ chat_error }}</p>
+    {% endif %}
+
+    <div id="chat-transcript" class="chat-transcript">
+        {% for message in chat_history %}
+        <article class="chat-message chat-{{ message.role }}">
+            <p class="chat-role">{% if message.role == 'user' %}You{% else %}Chatbot{% endif %}</p>
+            <p class="chat-text">{{ message.content }}</p>
+            {% if message.role == 'assistant' and message.response_time_ms is defined %}
+            <p class="chat-meta">Model response time: {{ "%.2f"|format(message.response_time_ms / 1000) }} s</p>
+            {% endif %}
+        </article>
+        {% else %}
+        <p class="result-meta">
+            No chat history yet. Example: "Find products for off-road riding using semantic search".
+        </p>
+        {% endfor %}
+    </div>
+
+    <form method="post" action="{{ url_for('chat') }}" class="chat-form">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <textarea
+            name="message"
+            rows="3"
+            placeholder="Type your question for the chatbot..."
+            aria-label="Chatbot message"
+        ></textarea>
+        <button type="submit">Send</button>
+    </form>
+
+    <div class="chat-window-actions">
+        <form method="post" action="{{ url_for('reset_chat') }}" class="chat-reset-form">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit">Clear chat</button>
+        </form>
+    </div>
+
+    <p id="chat-processing" class="chat-processing" aria-live="polite" hidden>
+        Processing your question... this may take a few seconds.
+    </p>
+
+    <button id="chat-resize" class="chat-resize-handle" type="button" aria-label="Resize chat window"></button>
+</section>
+
+<script>
+(() => {
+    const table = document.querySelector(".result-table");
+    if (!table) {
+        return;
+    }
+
+    const tbody = table.querySelector("tbody");
+    const sortButtons = table.querySelectorAll(".table-sort-btn");
+    if (!tbody || !sortButtons.length) {
+        return;
+    }
+
+    const normalizeText = (value) => (value || "").trim().toLocaleLowerCase();
+    const parseNumber = (value) => {
+        const parsed = Number.parseFloat(String(value || "").replace(/[^0-9.-]/g, ""));
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const readSortValue = (row, columnIndex, sortType) => {
+        const cell = row.cells[columnIndex];
+        const rawValue = cell ? (cell.dataset.sortValue || cell.textContent || "") : "";
+        return sortType === "number" ? parseNumber(rawValue) : normalizeText(rawValue);
+    };
+
+    sortButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            const columnIndex = Number.parseInt(button.dataset.sortIndex || "0", 10);
+            const sortType = button.dataset.sortType || "text";
+            const currentDirection = button.dataset.sortDirection || "none";
+            const nextDirection = currentDirection === "ascending" ? "descending" : "ascending";
+
+            sortButtons.forEach((sortButton) => {
+                sortButton.removeAttribute("data-sort-direction");
+                const header = sortButton.closest("th");
+                if (header) {
+                    header.setAttribute("aria-sort", "none");
+                }
+            });
+
+            button.dataset.sortDirection = nextDirection;
+            const activeHeader = button.closest("th");
+            if (activeHeader) {
+                activeHeader.setAttribute("aria-sort", nextDirection);
+            }
+
+            const directionMultiplier = nextDirection === "ascending" ? 1 : -1;
+            const sortedRows = Array.from(tbody.querySelectorAll("tr"))
+                .map((row, originalIndex) => ({ row, originalIndex }))
+                .sort((left, right) => {
+                    const leftValue = readSortValue(left.row, columnIndex, sortType);
+                    const rightValue = readSortValue(right.row, columnIndex, sortType);
+                    let comparison = 0;
+
+                    if (sortType === "number") {
+                        comparison = leftValue - rightValue;
+                    } else {
+                        comparison = String(leftValue).localeCompare(String(rightValue), undefined, {
+                            sensitivity: "base",
+                            numeric: true,
+                        });
+                    }
+
+                    if (comparison === 0) {
+                        comparison = left.originalIndex - right.originalIndex;
+                    }
+
+                    return comparison * directionMultiplier;
+                });
+
+            sortedRows.forEach(({ row }) => tbody.appendChild(row));
+        });
+    });
+})();
+</script>
+
+<script>
+(() => {
+    const drawer = document.getElementById("sql-preview-drawer");
+    const backdrop = document.getElementById("sql-preview-backdrop");
+    const trigger = document.getElementById("sql-preview-trigger");
+    const closeButton = document.getElementById("sql-preview-close");
+
+    if (!drawer || !backdrop || !trigger || !closeButton) {
+        return;
+    }
+
+    const openDrawer = () => {
+        drawer.hidden = false;
+        backdrop.hidden = false;
+        drawer.scrollTop = 0;
+        requestAnimationFrame(() => {
+            drawer.classList.add("is-open");
+            backdrop.classList.add("is-open");
+        });
+        trigger.setAttribute("aria-expanded", "true");
+        document.body.classList.add("sql-drawer-open");
+    };
+
+    const closeDrawer = () => {
+        drawer.classList.remove("is-open");
+        backdrop.classList.remove("is-open");
+        trigger.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("sql-drawer-open");
+
+        window.setTimeout(() => {
+            if (!drawer.classList.contains("is-open")) {
+                drawer.hidden = true;
+                backdrop.hidden = true;
+            }
+        }, 240);
+    };
+
+    trigger.addEventListener("click", () => {
+        if (drawer.hidden) {
+            openDrawer();
+            return;
+        }
+
+        closeDrawer();
+    });
+
+    closeButton.addEventListener("click", closeDrawer);
+    backdrop.addEventListener("click", closeDrawer);
+
+    window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !drawer.hidden) {
+            closeDrawer();
+        }
+    });
+})();
+</script>
+
+<script>
+(() => {
+    const toggleButtons = document.querySelectorAll(".sql-toggle-btn");
+    const sqlPanels = document.querySelectorAll(".sql-view");
+
+    if (toggleButtons.length && sqlPanels.length) {
+        const setActivePanel = (target) => {
+            toggleButtons.forEach((button) => {
+                button.classList.toggle("active", button.dataset.sqlTarget === target);
+                button.setAttribute("aria-selected", button.dataset.sqlTarget === target ? "true" : "false");
+            });
+
+            sqlPanels.forEach((panel) => {
+                const isActive = panel.dataset.sqlPanel === target;
+                panel.classList.toggle("active", isActive);
+                panel.hidden = !isActive;
+            });
+        };
+
+        toggleButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                setActivePanel(button.dataset.sqlTarget);
+            });
+        });
+
+        const activeButton = document.querySelector(".sql-toggle-btn.active");
+        setActivePanel(activeButton ? activeButton.dataset.sqlTarget : "unsafe");
+    }
+})();
+</script>
+
+<script>
+(() => {
+    const toggle = document.getElementById("chat-toggle");
+    const panel = document.getElementById("chatbot");
+    const closeButton = document.getElementById("chat-close");
+    const expandButton = document.getElementById("chat-expand");
+    const resizeHandle = document.getElementById("chat-resize");
+    const form = panel ? panel.querySelector("form.chat-form") : null;
+    const processing = document.getElementById("chat-processing");
+    const transcript = document.getElementById("chat-transcript");
+
+    if (!toggle || !panel || !form || !processing) {
+        return;
+    }
+
+    const submitButton = form.querySelector("button[type='submit']");
+    const messageInput = form.querySelector("textarea[name='message']");
+    const storageWidthKey = "chat_window_width";
+    const storageHeightKey = "chat_window_height";
+    const storageExpandedKey = "chat_window_expanded";
+    const minWidth = 320;
+    const minHeight = 360;
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
+
+    const applySavedSize = () => {
+        if (window.innerWidth <= 768) {
+            panel.style.width = "";
+            panel.style.height = "";
+            return;
+        }
+
+        const width = Number(window.localStorage.getItem(storageWidthKey) || "");
+        const height = Number(window.localStorage.getItem(storageHeightKey) || "");
+        const maxWidth = window.innerWidth - 40;
+        const maxHeight = window.innerHeight - 120;
+
+        if (Number.isFinite(width) && width >= minWidth) {
+            panel.style.width = `${clamp(width, minWidth, maxWidth)}px`;
+        }
+        if (Number.isFinite(height) && height >= minHeight) {
+            panel.style.height = `${clamp(height, minHeight, maxHeight)}px`;
+        }
+    };
+
+    const saveSize = () => {
+        const rect = panel.getBoundingClientRect();
+        window.localStorage.setItem(storageWidthKey, String(Math.round(rect.width)));
+        window.localStorage.setItem(storageHeightKey, String(Math.round(rect.height)));
+    };
+
+    const setExpandedState = (isExpanded, persist = true) => {
+        if (isExpanded && window.innerWidth > 768) {
+            panel.classList.add("chat-window-expanded");
+            panel.style.width = "";
+            panel.style.height = "";
+            if (expandButton) {
+                expandButton.textContent = "Default size";
+            }
+            if (persist) {
+                window.localStorage.setItem(storageExpandedKey, "1");
+            }
+            return;
+        }
+
+        panel.classList.remove("chat-window-expanded");
+        if (expandButton) {
+            expandButton.textContent = "Expand";
+        }
+        applySavedSize();
+        if (persist) {
+            window.localStorage.setItem(storageExpandedKey, "0");
+        }
+    };
+
+    const openPanel = () => {
+        panel.hidden = false;
+        toggle.setAttribute("aria-expanded", "true");
+        if (transcript) {
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+    };
+
+    const closePanel = () => {
+        panel.hidden = true;
+        toggle.setAttribute("aria-expanded", "false");
+    };
+
+    const toggleExpanded = () => {
+        const currentlyExpanded = panel.classList.contains("chat-window-expanded");
+        setExpandedState(!currentlyExpanded, true);
+    };
+
+    toggle.addEventListener("click", () => {
+        if (panel.hidden) {
+            openPanel();
+        } else {
+            closePanel();
+        }
+    });
+
+    if (closeButton) {
+        closeButton.addEventListener("click", closePanel);
+    }
+
+    if (expandButton) {
+        expandButton.addEventListener("click", toggleExpanded);
+    }
+
+    if (window.location.hash === "#chatbot") {
+        openPanel();
+    }
+
+    form.addEventListener("submit", () => {
+        openPanel();
+        processing.hidden = false;
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = "Processing...";
+        }
+
+        if (messageInput) {
+            messageInput.readOnly = true;
+        }
+    });
+
+    if (resizeHandle) {
+        let isResizing = false;
+        let startX = 0;
+        let startY = 0;
+        let startWidth = 0;
+        let startHeight = 0;
+
+        const onPointerMove = (event) => {
+            if (!isResizing || panel.classList.contains("chat-window-expanded")) {
+                return;
+            }
+
+            const maxWidth = window.innerWidth - 32;
+            const maxHeight = window.innerHeight - 90;
+            const nextWidth = clamp(startWidth + (event.clientX - startX), minWidth, maxWidth);
+            const nextHeight = clamp(startHeight + (event.clientY - startY), minHeight, maxHeight);
+            panel.style.width = `${nextWidth}px`;
+            panel.style.height = `${nextHeight}px`;
+        };
+
+        const onPointerUp = () => {
+            if (!isResizing) {
+                return;
+            }
+
+            isResizing = false;
+            document.body.classList.remove("chat-resizing");
+            window.removeEventListener("pointermove", onPointerMove);
+            window.removeEventListener("pointerup", onPointerUp);
+            saveSize();
+        };
+
+        resizeHandle.addEventListener("pointerdown", (event) => {
+            if (window.innerWidth <= 768 || panel.classList.contains("chat-window-expanded")) {
+                return;
+            }
+
+            event.preventDefault();
+            openPanel();
+
+            isResizing = true;
+            startX = event.clientX;
+            startY = event.clientY;
+            const rect = panel.getBoundingClientRect();
+            startWidth = rect.width;
+            startHeight = rect.height;
+
+            document.body.classList.add("chat-resizing");
+            window.addEventListener("pointermove", onPointerMove);
+            window.addEventListener("pointerup", onPointerUp);
+        });
+    }
+
+    window.addEventListener("resize", () => {
+        if (window.innerWidth <= 768) {
+            panel.classList.remove("chat-window-expanded");
+            panel.style.width = "";
+            panel.style.height = "";
+            if (expandButton) {
+                expandButton.textContent = "Expand";
+            }
+            return;
+        }
+
+        const shouldBeExpanded = window.localStorage.getItem(storageExpandedKey) === "1";
+        if (shouldBeExpanded) {
+            setExpandedState(true, false);
+            return;
+        }
+
+        setExpandedState(false, false);
+    });
+
+    const shouldRestoreExpanded = window.localStorage.getItem(storageExpandedKey) === "1";
+    setExpandedState(shouldRestoreExpanded, false);
+})();
+</script>
+{% endblock %}
